@@ -18,7 +18,9 @@
       "Bash(git merge-base *)",
       "Bash(npm test)",
       "Bash(npx vitest run *)",
-      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.json','utf8'\\)\\);console.log\\('  settings.json parses OK'\\)\")"
+      "Bash(node -e *)",
+      "Bash(curl *)",
+      "Bash(git commit --quiet -m 'Generalise node and curl allowlist entries *)"
     ]
   },
   "hooks": {
