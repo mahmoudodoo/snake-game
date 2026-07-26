@@ -395,6 +395,99 @@ body {
   color: var(--muted);
 }
 
+/* ---------- touch controls ---------- */
+
+/* Hidden by default and revealed only for coarse pointers: a mouse user has the
+   keyboard, and the pad would just eat vertical space the board wants. */
+.dpad {
+  display: none;
+  grid-template-columns: repeat(3, 3.5rem);
+  grid-template-rows: repeat(2, 3.5rem);
+  gap: 0.4rem;
+  justify-content: center;
+  /* The pad is a control surface, not a scroll surface. */
+  touch-action: none;
+}
+
+.dpad__btn {
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #1c2230;
+  color: var(--ink);
+  font-size: 1.1rem;
+  line-height: 1;
+  /* Stops the long-press callout and the grey tap flash on iOS. */
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.dpad__btn:active {
+  border-color: var(--accent);
+  background: #243044;
+}
+
+.dpad__btn--up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.dpad__btn--left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.dpad__btn--down {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.dpad__btn--right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+@media (pointer: coarse) {
+  .dpad {
+    display: grid;
+  }
+
+  /* The board is the swipe surface, so the browser must not claim the gesture
+     for scrolling or pull-to-refresh while a thumb is dragging across it. */
+  .stage {
+    touch-action: none;
+    /* Leave room for the bar, hint, pad and gaps — roughly 16rem — so the pad
+       is never pushed off the bottom of a short screen. */
+    max-width: calc((100dvh - 16rem) * 4 / 3);
+  }
+}
+
+/* Side-by-side board and roster stops fitting well before this width. */
+@media (max-width: 40rem) {
+  .game__body {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .players--panel {
+    flex: 0 0 auto;
+    width: min(100%, 960px);
+  }
+
+  .bar {
+    flex-wrap: wrap;
+    row-gap: 0.35rem;
+  }
+
+  .shell {
+    padding: 0.75rem;
+  }
+}
+
 /* ---------- game over ---------- */
 
 .over {
