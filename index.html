@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Snake Game</title>
+  </head>
+  <body>
+    <main class="shell">
+      <!-- Both screens ship in the markup; ui/screens.ts toggles `hidden`. -->
+      <section id="lobby" class="screen lobby"></section>
+
+      <section id="game" class="screen game" hidden>
+        <header class="bar">
+          <h1 class="bar__title">Snake</h1>
+          <div id="hud" class="hud"></div>
+          <button id="quit" class="btn btn--ghost btn--small" type="button">Leave</button>
+        </header>
+
+        <div class="game__body">
+          <div class="stage">
+            <canvas id="board" class="board"></canvas>
+            <div id="game-over" hidden></div>
+          </div>
+          <aside id="players" class="players players--panel" hidden></aside>
+        </div>
+
+        <p class="hint">Arrow keys or WASD to steer — Space to restart</p>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "isolatedModules": true,
+    "verbatimModuleSyntax": true,
+    "resolveJsonModule": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    /* vite/client types the `import './style.css'` side-effect import and
+       import.meta.env (BASE_URL is what builds the invite links). */
+    "types": ["vite/client", "node"],
+
+    /* Strict mode, per .claude/CLAUDE.md. noUncheckedIndexedAccess matters here:
+       the board is grid-indexed, and it turns silent undefined reads into errors. */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+
+    /* Vite transpiles per-file with esbuild, so only erasable syntax is safe. */
+    "erasableSyntaxOnly": true
+  },
+  "include": ["src", "vite.config.ts"]
+}
