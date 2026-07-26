@@ -5,7 +5,10 @@
       "Bash(npm run *)",
       "Bash(git ls-tree *)",
       "Bash(git checkout *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)"
     ]
   },
   "hooks": {
