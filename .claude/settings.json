@@ -20,7 +20,8 @@
       "Bash(npx vitest run *)",
       "Bash(node -e *)",
       "Bash(curl *)",
-      "Bash(git commit --quiet -m 'Generalise node and curl allowlist entries *)"
+      "Bash(node -e ' *)",
+      "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(s\\);for\\(const r of j.workflow_runs??[]\\)console.log\\('  '+[r.name,r.head_branch,r.status,r.conclusion].join\\(' | '\\)\\)}\\)\")"
     ]
   },
   "hooks": {
