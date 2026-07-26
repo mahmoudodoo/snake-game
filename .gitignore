@@ -141,3 +141,7 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Claude Code: scratch dir (browser profiles, temp artifacts) and machine-local notes
+.claude/tmp/
+.claude/local/
