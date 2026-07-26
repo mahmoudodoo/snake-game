@@ -1,19 +1,20 @@
 import './style.css'
 import { PLAYER_COLORS } from './game/constants'
 import { tickIntervalForScore } from './game/difficulty'
-import { attachKeyboard } from './game/input'
+import { attachKeyboard, attachSwipe, combineInputs } from './game/input'
 import type { InputSource } from './game/input'
 import { createLoop } from './game/loop'
 import { DEFAULT_CONFIG, createInitialState } from './game/state'
 import type { PlayerSeed } from './game/state'
 import { step } from './game/step'
-import type { GameState, PlayerId } from './game/types'
+import type { Direction, GameState, PlayerId } from './game/types'
 import { createTransport, peerIdForRoom } from './network/peer'
 import type { RosterEntry } from './network/protocol'
 import { createRoomId, inviteUrl, roomIdFromUrl, withoutRoom } from './network/room'
 import { hostRoom, joinRoom } from './network/session'
-import type { Session } from './network/session'
+import type { ClientSession, HostSession } from './network/session'
 import { createGameOver } from './ui/gameOver'
+import { createDpad } from './ui/dpad'
 import { createHud } from './ui/hud'
 import { createLobby, sanitizeName } from './ui/lobby'
 import type { LobbyModel } from './ui/lobby'
@@ -24,13 +25,7 @@ import { createScreens } from './ui/screens'
 
 const YOU_ID = 'local'
 
-/**
- * Players can now open a room, share the link and see each other arrive; what
- * the connection does not yet carry is the match itself. Until the loop reads
- * from the host's state frames, "Start match" runs a local simulation on each
- * machine, so say so rather than letting people discover it mid-game.
- */
-const SYNC_PENDING = 'Connected. Live match sync is still to come — Start match runs locally.'
+const CONNECTED = 'Connected. The host starts the match when everyone is in.'
 
 function required<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector)
@@ -49,12 +44,20 @@ function bootstrap(): void {
     lobby: required<HTMLElement>('#lobby'),
     game: required<HTMLElement>('#game'),
   })
-  const hud = createHud(required<HTMLElement>('#hud'), YOU_ID)
+  const hudRoot = required<HTMLElement>('#hud')
   const roster = createPlayerList(rosterPanel)
+
+  /* Which seat is "you" — 'local' solo, or the id the host assigned in a room.
+     The HUD bakes it in at construction, so it is rebuilt when the seat changes. */
+  let youId: PlayerId = YOU_ID
+  let hud = createHud(hudRoot, youId)
 
   let seeds: readonly PlayerSeed[] = []
   let state: GameState | null = null
   let input: InputSource | null = null
+  /* Directions received from clients since the last tick. Drained into step()
+     and cleared, so a peer that stops sending simply keeps its heading. */
+  let remoteInputs: Partial<Record<PlayerId, Direction>> = {}
   let lobbyModel: LobbyModel = {
     name: 'Player',
     phase: 'home',
@@ -77,20 +80,41 @@ function bootstrap(): void {
     if (state) drawGame(ctx, resizeCanvas(canvas, ctx), state, config)
   }
 
+  /** Solo and host own the simulation; a client only ever renders what it is sent. */
+  const simulating = (): boolean => session === null || session.role === 'host'
+
   function paint(): void {
     if (!state) return
+    const hostId = session === null ? null : (session.roster.find((e) => e.isHost)?.id ?? null)
     hud.update(state, currentInterval())
-    roster.update(toPlayerRows(state, YOU_ID, lobbyModel.isHost ? YOU_ID : null))
+    roster.update(toPlayerRows(state, youId, hostId))
     // A solo run has no roster worth the sidebar; the HUD already carries the score.
     rosterPanel.hidden = state.players.length < 2
-    gameOver.update(state, YOU_ID)
+    gameOver.update(state, youId)
   }
 
   const loop = createLoop({
     tickInterval: currentInterval,
     onTick: () => {
+      const pressed = input?.drain()
+
+      /* Client: inputs only. It never calls step() — the host's frames are the
+         world, so simulating here would just be a second, diverging game. */
+      if (!simulating()) {
+        if (pressed !== undefined && session?.role === 'client') session.sendInput(pressed)
+        return
+      }
+
       if (!state || state.status !== 'playing') return
-      state = step(state, config, { [YOU_ID]: input?.drain() })
+
+      const inputs: Partial<Record<PlayerId, Direction>> = { ...remoteInputs }
+      remoteInputs = {}
+      if (pressed !== undefined) inputs[youId] = pressed
+
+      state = step(state, config, inputs)
+      // Broadcast before painting: peers should see the frame at least as soon
+      // as the host does, rather than a render's worth of work later.
+      if (session?.role === 'host') session.broadcastState(state)
       paint()
       // Nothing left to simulate behind the dialog — stop burning frames.
       if (state.status === 'over') loop.stop()
@@ -106,14 +130,36 @@ function bootstrap(): void {
     loop.start()
   }
 
+  /** Screen + input wiring shared by both roles. Rebuilds the HUD for this seat. */
+  function showGame(): void {
+    hud = createHud(hudRoot, youId)
+    screens.show('game')
+    /* Keyboard, swipe and on-screen pad are all live at once — a tablet with a
+       keyboard should not have to pick, and nothing here has to detect a device. */
+    input ??= combineInputs(
+      attachKeyboard(),
+      attachSwipe(required<HTMLElement>('#stage')),
+      createDpad(required<HTMLElement>('#dpad')),
+    )
+    input.onRestart(() => {
+      // Only the authority restarts; a client waits for the host's next frame.
+      if (simulating() && state?.status === 'over') newGame()
+    })
+  }
+
   function enterGame(players: readonly PlayerSeed[]): void {
     seeds = players
-    screens.show('game')
-    input ??= attachKeyboard()
-    input.onRestart(() => {
-      if (state?.status === 'over') newGame()
-    })
+    showGame()
     newGame()
+  }
+
+  /**
+   * A client has no "start" signal of its own — the host's first state frame is
+   * the signal. That keeps match start off the wire protocol entirely.
+   */
+  function enterGameAsClient(): void {
+    showGame()
+    loop.start()
   }
 
   function leaveGame(): void {
@@ -121,6 +167,15 @@ function bootstrap(): void {
     input?.detach()
     input = null
     state = null
+    /* A client that walks out mid-match would otherwise be dragged straight back
+       by the host's next frame, so leaving the game leaves the room. The host
+       keeps its room — going back to the lobby is how it starts the next match. */
+    if (session?.role === 'client') {
+      closeSession()
+      syncUrl(null)
+      setLobby({ phase: 'home', roomId: null, inviteUrl: null, isHost: false, players: [] })
+      youId = YOU_ID
+    }
     screens.show('lobby')
     renderLobby()
   }
@@ -134,7 +189,7 @@ function bootstrap(): void {
     lobby.update(lobbyModel)
   }
 
-  let session: Session | null = null
+  let session: HostSession | ClientSession | null = null
 
   function closeSession(): void {
     session?.close()
@@ -168,15 +223,36 @@ function bootstrap(): void {
     }))
   }
 
-  function bindSession(active: Session): void {
+  function bindSession(active: HostSession | ClientSession): void {
     session = active
+    youId = active.selfId ?? YOU_ID
+    remoteInputs = {}
+
+    if (active.role === 'host') {
+      // Keep only the latest direction per player: step() applies one per tick,
+      // so an earlier one in the same tick is already stale.
+      active.onInput((playerId, dir) => {
+        remoteInputs[playerId] = dir
+      })
+    } else {
+      active.onState((next) => {
+        const firstFrame = state === null
+        state = next
+        if (firstFrame) enterGameAsClient()
+        paint()
+        render()
+        if (next.status === 'over') loop.stop()
+      })
+    }
 
     active.onRosterChange((roster) => {
+      // A client learns its seat with the welcome, which lands as a roster change.
+      youId = active.selfId ?? youId
       setLobby({ players: rosterRows(roster, active.selfId) })
     })
 
     active.onStatusChange((status) => {
-      if (status === 'connected') setLobby({ phase: 'room', message: SYNC_PENDING })
+      if (status === 'connected') setLobby({ phase: 'room', message: CONNECTED })
       // Deliberately leaves `message` alone: whatever explained the disconnect
       // came through onError a moment earlier, and it is the useful half.
       if (status === 'closed') {
@@ -231,17 +307,19 @@ function bootstrap(): void {
         inviteUrl: inviteUrl(room.roomId, window.location.href),
         isHost: true,
         players: rosterRows(host.roster, host.selfId),
-        message: SYNC_PENDING,
+        message: CONNECTED,
       })
       bindSession(host)
     },
     onJoinRoom: startJoin,
     onStartMatch: () => {
+      /* Seat colours, not row order: a seat freed and refilled mid-lobby leaves
+         the two out of step, and the roster's colour is the one peers already see. */
       enterGame(
-        lobbyModel.players.map((player, index) => ({
+        lobbyModel.players.map((player) => ({
           id: player.id,
           name: player.name,
-          color: PLAYER_COLORS[index % PLAYER_COLORS.length] ?? player.color,
+          color: player.color,
         })),
       )
     },
@@ -260,7 +338,11 @@ function bootstrap(): void {
   })
 
   const gameOver = createGameOver(required<HTMLElement>('#game-over'), {
-    onPlayAgain: newGame,
+    // Only the authority can deal a new board; a client's next match arrives as
+    // a state frame when the host restarts.
+    onPlayAgain: () => {
+      if (simulating()) newGame()
+    },
     onBackToLobby: leaveGame,
   })
 
