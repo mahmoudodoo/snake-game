@@ -8,7 +8,17 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git rebase *)",
-      "Bash(git stash *)"
+      "Bash(git stash *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git branch *)",
+      "Bash(git merge-base *)",
+      "Bash(npm test)",
+      "Bash(npx vitest run *)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.json','utf8'\\)\\);console.log\\('  settings.json parses OK'\\)\")"
     ]
   },
   "hooks": {
