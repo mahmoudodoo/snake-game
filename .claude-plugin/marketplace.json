@@ -1,0 +1,15 @@
+{
+  "name": "snake-local",
+  "owner": {
+    "name": "mahmoudodoo",
+    "url": "https://github.com/mahmoudodoo/snake-game"
+  },
+  "plugins": [
+    {
+      "name": "snake-game-standards",
+      "source": "./snake-game-plugin",
+      "description": "Conventions, enforcement hooks, a verification skill and a cold-review agent for the multiplayer Snake game.",
+      "version": "0.1.0"
+    }
+  ]
+}
