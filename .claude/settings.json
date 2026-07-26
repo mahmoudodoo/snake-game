@@ -21,7 +21,8 @@
       "Bash(node -e *)",
       "Bash(curl *)",
       "Bash(node -e ' *)",
-      "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(s\\);for\\(const r of j.workflow_runs??[]\\)console.log\\('  '+[r.name,r.head_branch,r.status,r.conclusion].join\\(' | '\\)\\)}\\)\")"
+      "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(s\\);for\\(const r of j.workflow_runs??[]\\)console.log\\('  '+[r.name,r.head_branch,r.status,r.conclusion].join\\(' | '\\)\\)}\\)\")",
+      "Edit(/.claude/skills/verify-game-changes/**)"
     ]
   },
   "hooks": {
