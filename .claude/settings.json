@@ -22,7 +22,11 @@
       "Bash(curl *)",
       "Bash(node -e ' *)",
       "Bash(node -e \"let s='';process.stdin.on\\('data',d=>s+=d\\).on\\('end',\\(\\)=>{const j=JSON.parse\\(s\\);for\\(const r of j.workflow_runs??[]\\)console.log\\('  '+[r.name,r.head_branch,r.status,r.conclusion].join\\(' | '\\)\\)}\\)\")",
-      "Edit(/.claude/skills/verify-game-changes/**)"
+      "Edit(/.claude/skills/verify-game-changes/**)",
+      "Bash(mkdir -p snake-game-plugin/.claude-plugin snake-game-plugin/hooks snake-game-plugin/agents snake-game-plugin/skills/verify-game-changes)",
+      "Bash(cp .claude/hooks/format-file.mjs .claude/hooks/block-main-push.mjs .claude/hooks/verify.mjs .claude/hooks/project-root.mjs snake-game-plugin/hooks/)",
+      "Bash(cp .claude/agents/cold-reviewer.md snake-game-plugin/agents/)",
+      "Bash(cp .claude/skills/verify-game-changes/SKILL.md snake-game-plugin/skills/verify-game-changes/)"
     ]
   },
   "hooks": {

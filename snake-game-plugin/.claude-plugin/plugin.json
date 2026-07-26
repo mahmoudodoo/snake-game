@@ -1,0 +1,10 @@
+{
+  "name": "snake-game-standards",
+  "version": "0.1.0",
+  "description": "Conventions, enforcement hooks, a verification skill and a cold-review agent for the multiplayer Snake game. Formats on write, blocks pushes to main, gates turn completion on tests and typecheck, and supplies a read-only reviewer aimed at sync correctness, loop lifetime, hostile input and disconnect cleanup.",
+  "author": {
+    "name": "mahmoudodoo"
+  },
+  "homepage": "https://github.com/mahmoudodoo/snake-game",
+  "keywords": ["snake", "multiplayer", "webrtc", "vitest", "typescript"]
+}
