@@ -238,7 +238,14 @@ function bootstrap(): void {
       active.onState((next) => {
         const firstFrame = state === null
         state = next
-        if (firstFrame) enterGameAsClient()
+        if (firstFrame) {
+          enterGameAsClient()
+        } else if (next.status === 'playing' && !loop.running) {
+          /* The previous match ended, which stopped this client's loop — and the
+             loop is what forwards input. Without restarting it the next round
+             renders perfectly and ignores every key. */
+          loop.start()
+        }
         paint()
         render()
         if (next.status === 'over') loop.stop()
